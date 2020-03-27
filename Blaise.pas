@@ -4487,18 +4487,13 @@ end;
 
 
 class operator zxfloat.implicit(x: numeric): zxfloat;
-
 begin
-
   result.x := x;
-
 end;
 
 
 class operator zxfloat.equal(f, g: zxfloat): boolean;
-
 begin
-
   result := f.x = g.x;
 end;
 
@@ -4534,9 +4529,7 @@ end;
 
 
 class operator zxfloat.positive(f: zxfloat): zxfloat;
-
 begin
-
   result := +f.x;
 end;
 
@@ -4563,7 +4556,6 @@ end;
 
 class operator zxfloat.divide(f, g: zxfloat): zxfloat;
 begin
-
   result := f.x / g.x;
 end;
 
@@ -4577,17 +4569,13 @@ end;
 
 
 class operator zxcomplex.implicit(c: zxcomplex): complex;
-
 begin
-
   result.x := c.x;  result.y := c.y;
 end;
 
 
 class operator zxcomplex.implicit(z: complex): zxcomplex;
-
 begin
-
   result.x := z.x;  result.y := z.y;
 end;
 
@@ -4654,3 +4642,4 @@ done;
 
 
 end.
+
