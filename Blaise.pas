@@ -606,31 +606,22 @@ procedure ordsample(var x: array of ordinal; n: integer); overload;
 procedure ordsort(var x: array of ordinal; lpart, rpart: integer); overload;
 procedure ordsort(var x: array of ordinal); overload;
 procedure numsort(var x: array of numeric; lpart, rpart: integer); overload;
-
 procedure numsort(var x: array of numeric); overload;
 
 
 
 type
-
   zxfloat = packed record
-
     a, e, d, c, b: byte;
-
   private
-
     function getx: numeric;
     procedure setx(r: numeric);
     function getm: numeric;
     function gete: integer;
   public
-
     class operator implicit(z: zxfloat): numeric; overload;
-
     class operator implicit(x: numeric): zxfloat; overload;
-
     class operator equal(f, g: zxfloat): boolean;
-
     class operator notequal(f, g: zxfloat): boolean;
     class operator lessthan(f, g: zxfloat): boolean;
     class operator greaterthan(f, g: zxfloat): boolean;
@@ -645,37 +636,24 @@ type
     property x: numeric read getx write setx;
     property mantissa: numeric read getm;
     property exponent: integer read gete;
-
   end;
 
-
 function zxf(n: natural): zxfloat; overload;
-
 function zxf(a, e, d, c, b: byte): zxfloat; overload;
 
-
 const
-
   zxzero: zxfloat = (a:0; e: 0; d: 0; c: 0; b: 0);
-
   zxeps: zxfloat = (a:1; e: 0; d: 0; c: 0; b: 0); // 2^-128
-
   zxmin: zxfloat = (a:255; e: 255; d: 255; c: 255; b: 255);
-
   zxmax: zxfloat = (a:255; e: 127; d: 255; c: 255; b: 255);
 
 
-type
-
+ type
   zxcomplex = packed record
-
     x, y: zxfloat;
     class operator implicit(x: numeric): zxcomplex; overload;
-
     class operator implicit(c: zxcomplex): complex; overload;
-
     class operator implicit(z: complex): zxcomplex; overload;
-
   end;
 
 
@@ -4343,196 +4321,128 @@ begin
 end;
 
 
-
 function zxf(n: natural): zxfloat;
-
 begin
-
   result.b := n and 255;  n := n shr 8;
   result.c := n and 255;  n := n shr 8;
-
   result.d := n and 255;  n := n shr 8;
-
   result.e := n and 255;  n := n shr 8;
-
   result.a := n and 255;  n := n shr 8;
-
 end;
 
-
 function zxf(a, e, d, c, b: byte): zxfloat;
-
 begin
-
   result.a := a;
-
   result.b := b;
   result.c := c;
   result.d := d;
   result.e := e;
 end;
 
-
 function zxfloat.getm: numeric;
-
 begin
-
   if a = 0 then begin
     result := c; result := $100*result + d;
     if e = $ff then result := result - $10000;
   end else begin
-
     result := (((b/$100 + c)/$100 + d)/$100 + (e or $80))/$100;
-
     if e and $80 <> 0 then result := -result;
   end;
 end;
 
 
 function zxfloat.gete: integer;
-
 begin
-
   result := a;
-
   if result > 0 then result := result - $80;
 end;
 
-
 function zxfloat.getx: numeric;
-
 begin
-
   result := mantissa * power(2, exponent);
-
 end;
 
-
 procedure zxfloat.setx(r: numeric);
-
 var
-
   l: integer;
-
   n: natural;
-
   s: boolean;
-
 begin
-
   if isnan(r) or (r = 0) then self := zxzero else
-
   if r > zxmax.x then self := zxmax else
-
   if r < zxmin.x then self := zxmin else
-
   begin
-
     s := r < 0;  r := abs(r);  l := ilog2(r) + $80;
-
     while r >= 1 do begin
-
       r := r/2;  l := l + 1;
     end;
-
     n := round(r * $100000000);
-
     if n >= $100000000 then begin
-
       n := n div 2;  l := l + 1;
-
     end;
-
     if l > 0 then begin
-
       a := l;
-
       b := n and $ff;  n := n shr 8;
-
       c := n and $ff;  n := n shr 8;
-
       d := n and $ff;  n := n shr 8;
-
       e := n and $7f;  n := n shr 7;
-
       if s then e := e or $80;
-
       r := x;
-
       if (frac(r) = 0) and (-$10000 <= r) and (r < $10000) then begin
-
         l := trunc(r);
         a := 0;  b := 0;
         d := l and $ff;  l := l shr 8;
         c := l and $ff;  l := l shr 8;
-
         e := l and $ff;  l := l shr 8;
-
       end;
-
     end else self := zxzero;
-
   end;
-
 end;
-
 
 class operator zxfloat.implicit(z: zxfloat): numeric;
-
 begin
-
   result := z.x;
-
 end;
-
 
 class operator zxfloat.implicit(x: numeric): zxfloat;
 begin
   result.x := x;
 end;
 
-
 class operator zxfloat.equal(f, g: zxfloat): boolean;
 begin
   result := f.x = g.x;
 end;
-
 
 class operator zxfloat.notequal(f, g: zxfloat): boolean;
 begin
   result := f.x <> g.x;
 end;
 
-
 class operator zxfloat.lessthan(f, g: zxfloat): boolean;
 begin
   result := f.x < g.x;
 end;
-
 
 class operator zxfloat.greaterthan(f, g: zxfloat): boolean;
 begin
   result := f.x > g.x;
 end;
 
-
 class operator zxfloat.lessthanorequal(f, g: zxfloat): boolean;
 begin
   result := f.x <= g.x;
 end;
-
 
 class operator zxfloat.greaterthanorequal(f, g: zxfloat): boolean;
 begin
   result := f.x >= g.x;
 end;
 
-
 class operator zxfloat.positive(f: zxfloat): zxfloat;
 begin
   result := +f.x;
 end;
-
 
 class operator zxfloat.negative(f: zxfloat): zxfloat;
 begin
@@ -4561,18 +4471,14 @@ end;
 
 
 class operator zxcomplex.implicit(x: numeric): zxcomplex;
-
 begin
-
   result.x := x;  result.y := 0;
 end;
-
 
 class operator zxcomplex.implicit(c: zxcomplex): complex;
 begin
   result.x := c.x;  result.y := c.y;
 end;
-
 
 class operator zxcomplex.implicit(z: complex): zxcomplex;
 begin
@@ -4580,10 +4486,7 @@ begin
 end;
 
 
-
-
 procedure init;
-
 {$IFDEF WIRTH}
 var
   a: numeric;
