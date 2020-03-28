@@ -52,11 +52,9 @@ type
     class operator implicit(c: zxcomplex): complex; overload;
     class operator implicit(z: complex): zxcomplex; overload;
     class operator logicalnot(c: zxcomplex): zxcomplex;
-
     class operator equal(u, v: zxcomplex): boolean;
-
     class operator notequal(u, v: zxcomplex): boolean;
-end;
+  end;
 
 
 implementation
