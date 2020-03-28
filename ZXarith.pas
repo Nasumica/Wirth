@@ -39,10 +39,10 @@ function zxf(n: natural): zxfloat; overload;
 function zxf(a, e, d, c, b: byte): zxfloat; overload;
 
 const
-  zxzero: zxfloat = (a:0; e: 0; d: 0; c: 0; b: 0);
-  zxeps: zxfloat = (a:1; e: 0; d: 0; c: 0; b: 0); // 2^-128
-  zxmin: zxfloat = (a:255; e: 255; d: 255; c: 255; b: 255);
-  zxmax: zxfloat = (a:255; e: 127; d: 255; c: 255; b: 255);
+  zxzero: zxfloat = (a: 0; e: 0; d: 0; c: 0; b: 0);
+  zxeps: zxfloat = (a: 1; e: 0; d: 0; c: 0; b: 0); // 2⁻¹²⁸
+  zxmin: zxfloat = (a: 255; e: 255; d: 255; c: 255; b: 255);
+  zxmax: zxfloat = (a: 255; e: 127; d: 255; c: 255; b: 255);
 
 
 type
@@ -52,8 +52,11 @@ type
     class operator implicit(c: zxcomplex): complex; overload;
     class operator implicit(z: complex): zxcomplex; overload;
     class operator logicalnot(c: zxcomplex): zxcomplex;
+
     class operator equal(u, v: zxcomplex): boolean;
+
     class operator notequal(u, v: zxcomplex): boolean;
+
   end;
 
 
