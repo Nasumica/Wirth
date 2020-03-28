@@ -1,3 +1,9 @@
+(*
+
+ZX Spectrum 40-bit floating point arithmetic
+
+*)
+
 unit ZXarith;
 
 
@@ -15,6 +21,7 @@ type
     procedure setx(x: numeric);
     function getm: numeric;
     function gete: integer;
+    function gethex: string;
   public
     class operator implicit(z: zxfloat): numeric; overload;
     class operator implicit(x: numeric): zxfloat; overload;
@@ -33,6 +40,7 @@ type
     property value: numeric read getx write setx;
     property mantissa: numeric read getm;
     property exponent: integer read gete;
+    property hex: string read gethex;
   end;
 
 function zxf(n: natural): zxfloat; overload;
@@ -40,7 +48,7 @@ function zxf(a, e, d, c, b: byte): zxfloat; overload;
 
 const
   zxzero: zxfloat = (a: 0; e: 0; d: 0; c: 0; b: 0);
-  zxeps: zxfloat = (a: 1; e: 0; d: 0; c: 0; b: 0); // 2⁻¹²⁸
+  zxeps: zxfloat = (a: 1; e: 0; d: 0; c: 0; b: 0);
   zxmin: zxfloat = (a: 255; e: 255; d: 255; c: 255; b: 255);
   zxmax: zxfloat = (a: 255; e: 127; d: 255; c: 255; b: 255);
 
@@ -48,20 +56,32 @@ const
 type
   zxcomplex = packed record
     x, y: zxfloat;
+  public
     class operator implicit(x: numeric): zxcomplex; overload;
     class operator implicit(c: zxcomplex): complex; overload;
     class operator implicit(z: complex): zxcomplex; overload;
     class operator logicalnot(c: zxcomplex): zxcomplex;
-
     class operator equal(u, v: zxcomplex): boolean;
-
     class operator notequal(u, v: zxcomplex): boolean;
-
   end;
 
 
 implementation
 
+
+function digit(d: integer): char;
+begin
+  if (0 <= d) and (d <= 35) then begin
+    if d < 10
+      then result := chr(d + 48)
+      else result := chr(d + 55);
+  end else result := '.';
+end;
+
+function hexbyte(b: byte): string;
+begin
+  result := digit(b div 16) + digit(b mod 16);
+end;
 
 function zxfloat.getm: numeric;
 begin
@@ -73,7 +93,6 @@ begin
     if e and $80 <> 0 then result := -result;
   end;
 end;
-
 
 function zxfloat.gete: integer;
 begin
@@ -123,6 +142,11 @@ begin
   end;
 end;
 
+function zxfloat.gethex: string;
+begin
+  result := hexbyte(a) + hexbyte(e) + hexbyte(d) + hexbyte(c) + hexbyte(b);
+end;
+
 class operator zxfloat.implicit(z: zxfloat): numeric;
 begin
   result := z.value;
@@ -138,18 +162,15 @@ begin
   result := f.value = g.value;
 end;
 
-
 class operator zxfloat.notequal(f, g: zxfloat): boolean;
 begin
   result := f.value <> g.value;
 end;
 
-
 class operator zxfloat.lessthan(f, g: zxfloat): boolean;
 begin
   result := f.value < g.value;
 end;
-
 
 class operator zxfloat.greaterthan(f, g: zxfloat): boolean;
 begin
@@ -197,7 +218,6 @@ begin
 end;
 
 
-
 class operator zxcomplex.implicit(x: numeric): zxcomplex;
 begin
   result.x := x;  result.y := 0;
@@ -213,21 +233,15 @@ begin
   result.x := z.x;  result.y := z.y;
 end;
 
-
 class operator zxcomplex.logicalnot(c: zxcomplex): zxcomplex;
-
 begin
   result.x := +c.x;  result.y := -c.y;
 end;
 
-
 class operator zxcomplex.equal(u, v: zxcomplex): boolean;
-
 begin
-
   result := (u.x = v.x) and (u.y = v.y);
 end;
-
 
 class operator zxcomplex.notequal(u, v: zxcomplex): boolean;
 begin
@@ -235,9 +249,7 @@ begin
 end;
 
 
-
 function zxf(n: natural): zxfloat;
-
 begin
   result.b := n and 255;  n := n shr 8;
   result.c := n and 255;  n := n shr 8;
@@ -254,7 +266,6 @@ begin
   result.d := d;
   result.e := e;
 end;
-
 
 
 end.
