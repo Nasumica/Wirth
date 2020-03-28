@@ -56,7 +56,7 @@ type
     class operator equal(u, v: zxcomplex): boolean;
 
     class operator notequal(u, v: zxcomplex): boolean;
-  end;
+end;
 
 
 implementation
@@ -253,6 +253,7 @@ begin
   result.d := d;
   result.e := e;
 end;
+
 
 
 end.
