@@ -312,6 +312,9 @@ function arctanloc(z, location: complex): complex; overload;
 
 function PendulumAmplitudePeriod(body: complex; gravity: numeric = 9.80665): numeric; overload;
 
+function LambertW(x: numeric): numeric; overload;
+function LambertW(z: complex): complex; overload;
+
 function poly(x: numeric; const a: array of numeric): numeric; overload;
 function poly(z: complex; const a: array of numeric): complex; overload;
 function poly(z: complex; const a: array of complex): complex; overload;
@@ -1203,7 +1206,7 @@ function cbrt(x: numeric): numeric;
 var
   s: numeric;
 begin
-  if isnan(x) then result := nan else begin
+  if isnan(x) then result := x else begin
     s := abs(x);
     if (s = 0) or (s = 1) or (s = inf) then result := x else
     begin
@@ -1270,15 +1273,15 @@ begin
     if s > 1 then begin
       s := 1/s;  x := -x;  p := π/2;
     end else p := 0;
-    q := 1 + s * s;  m := 1;
+    q := s * s + 1;  m := 1;
     if q > 1 then begin
       if s > halving then begin
         c := (q + 1)/2;
         repeat
-          a := c;  c := (a + q/a)/2;
+          a := c;  c := (q/a + a)/2;
         until c = a;
-        s := s / (1 + c);
-        q := 1 + s * s;  m := 2;
+        s := s / (c + 1);
+        q := s * s + 1;  m := 2;
       end;
       n := 1;  a := s / q;  q := s * a;
       result := a;  c := 0;
@@ -1294,10 +1297,18 @@ begin
 end;
 
 function arg(x, y: numeric): numeric;
+var
+  t: numeric;
 begin
   if x = 0 then result := sign(y, π/2) else
   begin
-    result := arctan(y/x);
+    if abs(x) >= abs (y) then begin
+      t := y/x;
+      result := arctan(t);
+    end else begin
+      t := x/y;
+      result := psign(t, π/2) - arctan(t);
+    end;
     if x < 0 then result := result + psign(y, π);
   end;
 end;
@@ -1337,7 +1348,8 @@ begin
   if x = sqrth then result := π/4 else
   if x = sqrt3/2 then result := π/3 else
   if x = (φ - 1)/2 then result := π/10 else
-    result := 2 * arg(1 + compmod(x), x);
+    //result := 2 * arg(1 + compmod(x), x);
+    result := arg(compmod(x), x);
 end;
 
 function arccos(x: numeric): numeric;
@@ -1374,30 +1386,30 @@ end;
 
 {$IFDEF WIRTH}
 
-function lniter(s, q: numeric): numeric; overload;
+function lniter(a, q: numeric): numeric; overload;
 const
   maxiter = 64 * 2 + 1;
 var
   n: integer;
-  a, r, c: numeric;
+  r, c: numeric;
 begin
-  n := 1;  a := s;  c := 0;  result := a;
+  n := 1;  result := a;  c := 0;
   repeat
     n := n + 2;  a := a * q;
   until Kahan(result, r, c, a/n) or (n > maxiter);
   result := 2 * result;
 end;
 
-function lniter(s: numeric): numeric; overload;
+function lniter(a: numeric): numeric; overload;
 begin
-  result := lniter(s, s*s);
+  result := lniter(a, a * a);
 end;
 
 function log2(x: numeric): numeric;
 var
   l: ordinal;
 begin
-  if x < 0 then result := Ø else
+  if isnan(x) or (x < 0) then result := Ø else
   if x = 0 then result := -∞ else
   if x = ∞ then result := x else
   if x = ℮ then result := 1/ln2 else
@@ -1600,7 +1612,9 @@ end;
 
 function exp(x: numeric): numeric;
 begin
-  result := exp2(x / ln2);
+  if x =  1 then result := ℮ else
+  if x = -1 then result := 1/℮ else
+    result := exp2(x / ln2);
 end;
 
 function exp10(x: numeric): numeric;
@@ -2602,6 +2616,50 @@ end;
 function PendulumAmplitudePeriod(body: complex; gravity: numeric = 9.80665): numeric;
 begin
   result := PendulumAmplitudePeriod(body.ρ, body.θ, gravity);
+end;
+
+function LambertW(x: numeric): numeric; // academic use only
+const
+  maxiter = 32;
+var
+  p, q, r, u, v, w: numeric;
+  n: integer;
+begin
+  if x = 0 then result := 0 else
+  if x = ℮ then result := 1 else
+  if x = -1/℮ then result := -1 else
+  if x = 2*ln2 then result := ln2 else
+  if x < -1/℮ then result := nan else
+  begin
+    if x > 1 then w := ln(x) else w := x;
+    n := 0;  v := w;  result := w;
+    repeat
+      n := n + 1;  u := v;  v := w;  w := result;
+      p := exp(w);  q := w * p - x;  r := w + 1;
+      result := w - q/(p * r - (w + 2) * q/r/2);
+      if n > 2 then r := (result - w) - (u - v) else r := result;
+    until (result = w) or (result = v) or (result = u) or ((result + r/2) = result) or (n > maxiter);
+  end;
+end;
+
+function LambertW(z: complex): complex; // academic use only
+const
+  maxiter = 32;
+var
+  p, q, r, u, v, w: complex;
+  n: integer;
+begin
+  if z.isreal and (z.x >= -1/℮) then result := LambertW(z.x) else
+  if z = -pi/2 then result := xiy(0, -z.x) else
+  begin
+    n := 0;  w := ln(z);  v := w;  result := w;
+    repeat
+      n := n + 1;  u := v;  v := w;  w := result;
+      p := exp(w);  q := w * p - z;  r := w + 1;
+      result := w - q/(p * r - (w + 2) * q/r/2);
+      if n > 2 then r := (result - w) - (u - v) else r := result;
+    until (result = w) or (result = v) or (result = u) or ((result + r/2) = result) or (n > maxiter);
+  end;
 end;
 
 
@@ -4292,8 +4350,6 @@ asm
 end;
 {$ENDIF}
 begin
-  nateps := power(2, -8 * sizeof(natural));
-  entropy(seed);
   calctinies;
   {$IFDEF WIRTH}
   a := 1; repeat sqrt2 := a; a := a/2 + 1/a; until sqrt2 = a;
@@ -4315,6 +4371,8 @@ begin
   lg10 := ldlg10;
   ℮ := exp2(1/ln2);
   {$ENDIF}
+  nateps := exp2(-8 * sizeof(natural));
+  entropy(seed);
 end;
 
 
