@@ -1,6 +1,6 @@
 (*
 
-Pascal mathematica unit by Srbsialv D. Nešić, 1986--2020,
+Pascal mathematica unit by Srbislav D. Nešić, 1986--2020,
 srbislav.nesic@gmail.com
 
 *)
