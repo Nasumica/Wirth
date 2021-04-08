@@ -638,17 +638,6 @@ procedure numsort(var x: array of numeric; lpart, rpart: integer); overload;
 procedure numsort(var x: array of numeric); overload;
 
 
-
-/// <summary> Calculate Poisson distribution PMF or CDF
-
-/// </summary>
-
-function PoissonD(lambda: numeric; k: integer; cumulative: boolean = false): numeric; overload;
-
-function PoissonD(lambda: numeric; k1, k2: integer): numeric; overload;
-
-
-
 implementation
 
 
