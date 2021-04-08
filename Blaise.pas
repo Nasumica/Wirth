@@ -36,6 +36,18 @@ function isfin(const x: numeric): boolean; overload;
 function ispos0(const x: numeric): boolean; overload;
 function isneg0(const x: numeric): boolean; overload;
 
+const
+  EarthRadius = 6371008.8;
+  EarthGravity = 9.80665;
+  EarthMass = 5.97237e24;
+  EarthTilt = 23.4392811;
+  SpeedOfLight = 299792458;
+  GravitationalG = 6.6743015e-11;
+  PlanckH = 6.62607015e-34;
+  VacuumPerm = 8.854187812813e-12;
+  ElectronCharge = 1.602176634e-19;
+  AvogadroN = 6.02214076e23;
+
 procedure order(var a, b: ordinal); overload;
 procedure order(var a, b, c: ordinal); overload;
 function min(m, n: ordinal): ordinal; overload;
@@ -170,9 +182,11 @@ function agm(x, y: numeric): numeric; overload;
 function cagm(x, y: numeric): numeric; overload;
 
 function EllipticK(x: numeric): numeric; overload;
+function EllipticE(x: numeric): numeric; overload;
 
 function PendulumAmplitudePeriod(length, inclination: numeric;
-  gravity: numeric = 9.80665): numeric; overload;
+  gravity: numeric = EarthGravity): numeric; overload;
+function EllipseCircumference(a, b: numeric): numeric; overload;
 function TimeDilation(v: numeric): numeric; overload;
 function Gudermannian(x: numeric): numeric; overload;
 function AntiCollision(n, k:integer): numeric; overload;
@@ -189,6 +203,7 @@ function pianofreq(key: numeric): numeric;
 function pianokey(freq: numeric): numeric;
 
 function Kahan(var s, o, c: numeric; a: numeric): boolean; overload;
+function Kahan(var s, c: numeric; a: numeric): boolean; overload;
 
 type
   complex = packed record
@@ -311,7 +326,8 @@ function archav(z: complex): complex; overload;
 function arccrd(z: complex): complex; overload;
 function arctanloc(z, location: complex): complex; overload;
 
-function PendulumAmplitudePeriod(body: complex; gravity: numeric = 9.80665): numeric; overload;
+function PendulumAmplitudePeriod(body: complex; gravity: numeric = EarthGravity): numeric; overload;
+function EllipseCircumference(z: complex): numeric; overload;
 
 function LambertW(x: numeric): numeric; overload; // x = y * exp(y)
 function LambertW(z: complex): complex; overload;
@@ -355,8 +371,12 @@ function Lissajous(t, u, v: numeric): complex; overload;
 
 function hms(h: numeric; m: numeric = 0; s: numeric = 0): numeric; overload;
 function dms(d: numeric; m: numeric = 0; s: numeric = 0): numeric; overload;
-function GeoPos(lat, lon: numeric): complex; overload;
-function GeoDist(a, b: complex; r: numeric = 6371008.8): numeric; overload;
+function GeoPos(lon, lat: numeric): complex; overload;
+function GeoDist(a, b: complex; r: numeric = EarthRadius): numeric; overload;
+function HorizonDist(h: numeric; r: numeric = EarthRadius): numeric; overload;
+function GeoArc(h: numeric; r: numeric = EarthRadius): numeric; overload;
+function GeoObstacle(h: numeric; r: numeric = EarthRadius): numeric; overload;
+function GeoLength(h: numeric; r: numeric = EarthRadius): numeric; overload;
 
 function mandelbrot(c: complex; x: numeric = 2; m: integer = 1000): integer; overload;
 function mandelbrot(c, p: complex; m: integer = 1000): integer; overload;
@@ -556,6 +576,8 @@ function arctanh(q: quaternion): quaternion; overload;
 function arccoth(q: quaternion): quaternion; overload;
 
 function Gamma(q: quaternion): quaternion; overload;
+
+function geoqtn(lon, lat: numeric): quaternion; overload;
 
 function mandelbrot(c: quaternion; x: numeric = 2; m: integer = 1000): integer; overload;
 function yprtoqtn(q: quaternion): quaternion; overload;
@@ -771,19 +793,26 @@ begin
   result := s = o;
 end;
 
+function Kahan(var s, c: numeric; a: numeric): boolean;
+var
+  o: numeric;
+begin
+  result := Kahan(s, o, c, a);
+end;
+
 {$IFDEF WIRTH}
 
 function pi: numeric;
 var
   n: integer;
-  a, q, r, c: numeric;
+  a, q, c: numeric;
 begin
   if π = 0 then begin
     n := -8;  q := 16;  c := 0;
     repeat
       n := n + 8;  q := q / 16;
       a := 4/(n + 1) - 2/(n + 4) - 1/(n + 5) - 1/(n + 6);
-    until Kahan(π, r, c, a * q);
+    until Kahan(π, c, a * q);
   end;
   result := π;
 end;
@@ -800,27 +829,26 @@ end;
 
 var
   tinies: array of numeric; // 1/2^2^n, n = 0, 1, 2, ...
-  expscale: ordinal; // max 2^2^n
+  expscale: integer; // max 2^2^n
 
 procedure calctinies;
 var
   s: numeric;
 begin
-  expscale := 1; s := 1/2;
+  expscale := 1;  s := 1/2;
   setlength(tinies, 0);
   while s > 0 do begin
     expscale := expscale * 2;
     setlength(tinies, length(tinies) + 1);
     tinies[high(tinies)] := s;
-    s := sqr(s);
+    s := s * s;
   end;
   expscale := expscale div 2;
 end;
 
 function ilog2(var x: numeric): ordinal; // internal use
 var
-  n: ordinal;
-  k: integer;
+  n, k: integer;
   p: numeric;
 begin
   result := 0;
@@ -1190,7 +1218,14 @@ end;
 
 function sqr(x: numeric): numeric;
 begin
-  result := x * x;
+{
+  if x = sqrt2 then result := 2 else
+  if x = sqrth then result := 0.5 else
+  if x = sqrt3 then result := 3 else
+  if x = sqrt5 then result := 5 else
+  if x = sqrtπ then result := π else
+}
+    result := x * x;
 end;
 
 function cub(x: numeric): numeric;
@@ -1206,6 +1241,7 @@ var
 begin
   if isnan(x) or (x < 0) then result := nan else
   if (x = 0) or (x = 1) or (x = inf) then result := x else
+  if x = 2 then result := sqrt2 else
   begin
     s := x;  result := power(2, (ilog2(s) + 1) div 2);
     repeat
@@ -1248,8 +1284,7 @@ end;
 
 function hypot(x, y: numeric): numeric;
 begin
-  x := abs(x);  y := abs(y);
-  if x > y then exchange(x, y);
+  x := abs(x);  y := abs(y);  order(x, y);
   if x = 0
     then result := y
     else result := y * sqrt(1 + sqr(x/y));
@@ -1261,10 +1296,8 @@ begin
 end;
 
 function TimeDilation(v: numeric): numeric;
-const
-  ϲ = 299792458;
 begin
-  result := compmod(v/ϲ);
+  result := compmod(v / SpeedOfLight);
 end;
 
 {$IFDEF WIRTH}
@@ -1282,7 +1315,7 @@ begin
   if s = 1 then result := π/4 else
   if s = ∞ then result := π/2 else
   begin
-    if s > 1 then begin
+    if s > 1 then begin // arctan(x) + arccot(x) = sgn(x) * π/2
       s := 1/s;  x := -x;  p := π/2;
     end else p := 0;
     q := s * s + 1;  m := 1;
@@ -1392,6 +1425,7 @@ end;
 
 function arccrd(x: numeric): numeric;
 begin
+  if abs(x) > 2 then result := sign(x, π) else
   result := 2 * arcsin(x/2);
 end;
 
@@ -1626,6 +1660,7 @@ function exp(x: numeric): numeric;
 begin
   if x =  1 then result := ℮ else
   if x = -1 then result := 1/℮ else
+  if x =  2 then result := sqr(℮) else
     result := exp2(x / ln2);
 end;
 
@@ -1927,9 +1962,57 @@ begin
     result := π/2 / agm(1, sqrt(1 - x));
 end;
 
+function EllipticE(x: numeric): numeric;
+const
+  maxiter = 64;
+var
+  a, g, c, s, d, b, e: numeric;
+  i: integer;
+begin
+  i := 0;  a := 1;  g := sqrt(1 - x);
+  if g = 0 then result := 1 else begin
+    c := sqrt(x);  d := -1/2;  s := 1 - x/2;  e := 0;
+    repeat
+      i := i + 1;
+      if a <> g then begin
+        b := a;  a := amean(a, g);  g := gmean(b, g);
+      end;
+      c := sqr(c/2) / a;  d := 2*d;
+    until Kahan(s, b, e, d * sqr(c)) or (i > maxiter);
+    result := π/2 * (s/a);
+  end;
+end;
+
 function PendulumAmplitudePeriod(length, inclination, gravity: numeric): numeric;
 begin
   result := 4 * sqrt(abs(length/gravity)) * EllipticK(hav(inclination));
+end;
+
+function EllipseCircumference(a, b: numeric): numeric;
+function integrate(x: numeric): numeric;
+const
+  maxiter = 64;
+var
+  a, c, s, d, b, e: numeric;
+  i: integer;
+begin
+  i := 0;  a := 1;  d := -1/2;  e := 0;
+  c := sqr(x);  s := amean(c, 1);  c := sqrt(1 - c);
+  repeat
+    i := i + 1;
+    if a <> x then begin
+      b := a;  a := amean(a, x);  x := gmean(b, x);
+    end;
+    c := sqr(c/2) / a;  d := 2*d;
+  until Kahan(s, b, e, d * sqr(c)) or (i > maxiter);
+  result := s / a;
+end;
+begin
+  a := abs(a);  b := abs(b);  order(b, a);
+  if b = 0 then result := 4 else
+  if a = b then result := τ else
+    result := τ * integrate(b/a); // 4 * EllipticE(1 - sqr(b/a));
+  result := result * a;
 end;
 
 function Gudermannian(x: numeric): numeric;
@@ -2575,7 +2658,7 @@ begin
   result := rad(hms(d, m, s));
 end;
 
-function geopos(lat, lon: numeric): complex;
+function geopos(lon, lat: numeric): complex;
 begin
   lat := wrap(lat, 180);
   lon := wrap(lon, 180);
@@ -2583,12 +2666,42 @@ begin
     lat := sign(lat, 180 - abs(lat));
     lon := lon - psign(lon, 180);
   end;
-  result := xiy(rad(lat), rad(lon));
+  result := xiy(rad(lon), rad(lat));
+end;
+
+function geoqtn(lon, lat: numeric): quaternion;
+var
+  ƛ, φ: complex;
+begin
+  ƛ := cisd(lon);  φ := cisd(lat);
+  result := qtn(0, ƛ.x * φ.x, ƛ.y * φ.x, φ.y);
 end;
 
 function geodist(a, b: complex; r: numeric): numeric;
 begin
-  result := r * archav(hav(a.x - b.x) + hav(a.y - b.y) * cos(a.x) * cos(b.x));
+  result := r * archav(hav(a.x - b.x) * cos(a.y) * cos(b.y) + hav(a.y - b.y));
+end;
+
+function HorizonDist(h: numeric; r: numeric): numeric;
+begin
+  result := sqrt(h * (2*r + h));
+end;
+
+function geoarc(h: numeric; r: numeric): numeric;
+begin
+  if h = inf
+    then result := π/2
+    else result := arccos(r / (r + h));
+end;
+
+function geoobstacle(h: numeric; r: numeric): numeric;
+begin
+  result := r * (1 - cos(geoarc(h, r)/2));
+end;
+
+function GeoLength(h: numeric; r: numeric): numeric;
+begin
+  result := r * geoarc(h, r);
 end;
 
 function mandelbrot(c, p: complex; m: integer = 1000): integer;
@@ -2642,9 +2755,14 @@ begin
   result := superellipse(xiy(radius, radius), angle, shape, symmetry);
 end;
 
-function PendulumAmplitudePeriod(body: complex; gravity: numeric = 9.80665): numeric;
+function PendulumAmplitudePeriod(body: complex; gravity: numeric): numeric;
 begin
   result := PendulumAmplitudePeriod(body.ρ, body.θ, gravity);
+end;
+
+function EllipseCircumference(z: complex): numeric;
+begin
+  result := EllipseCircumference(z.x, z.y);
 end;
 
 function LambertW(x: numeric): numeric; // academic use only
@@ -3150,16 +3268,17 @@ end;
 
 class operator rational.add(f, g: rational): rational;
 var
-  d: ordinal;
+  d, m, c: natural;
 begin
   if (f.q = 0) or (g.q = 0) then begin
     result := frc(sign(f.p) * sign(g.p), 0);
   end else begin
     f := +f;  g := +g; // ensure reduced
-    d := lcm(f.q, g.q);
-    f.p := (d div f.q) * f.p; f.q := d;
-    g.p := (d div g.q) * g.p; g.q := d;
-    result := frc(f.p + g.p, d);
+    d := gcd(f.q, g.q);  m := f.q div d;
+    d := g.q;  m := himul(c, m, d);
+    if c > 0
+      then fractional(f.x + g.x, result, 8, 1e-18) // inexact
+      else result := frc((m div f.q) * f.p + (m div g.q) * g.p, m);
   end;
 end;
 
@@ -3331,7 +3450,7 @@ end;
 
 function simplify(f: rational; depth: integer): rational;
 begin
-  fractional(f.x, result, depth);
+  fractional(f.x, result, depth, sqrt(nateps));
 end;
 
 function crossprod(f, g: rational): ordinal;
@@ -4431,3 +4550,4 @@ done;
 
 
 end.
+
